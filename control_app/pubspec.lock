@@ -29,6 +29,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.9.0"
+  awesome_dialog:
+    dependency: "direct main"
+    description:
+      name: awesome_dialog
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "3.0.2"
   boolean_selector:
     dependency: transitive
     description:
@@ -71,6 +78,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.0.5"
+  dotted_border:
+    dependency: "direct main"
+    description:
+      name: dotted_border
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.0.0+2"
   fake_async:
     dependency: transitive
     description:
@@ -135,6 +149,27 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
+  graphs:
+    dependency: transitive
+    description:
+      name: graphs
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "2.1.0"
+  http:
+    dependency: transitive
+    description:
+      name: http
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.13.5"
+  http_parser:
+    dependency: transitive
+    description:
+      name: http_parser
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "4.0.2"
   image:
     dependency: transitive
     description:
@@ -177,6 +212,20 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "1.8.2"
+  path_drawing:
+    dependency: transitive
+    description:
+      name: path_drawing
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
+  path_parsing:
+    dependency: transitive
+    description:
+      name: path_parsing
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "1.0.1"
   petitparser:
     dependency: transitive
     description:
@@ -191,6 +240,13 @@ packages:
       url: "https://pub.dartlang.org"
     source: hosted
     version: "2.1.3"
+  rive:
+    dependency: transitive
+    description:
+      name: rive
+      url: "https://pub.dartlang.org"
+    source: hosted
+    version: "0.9.1"
   sky_engine:
     dependency: transitive
     description: flutter
@@ -282,4 +338,4 @@ packages:
     version: "3.1.1"
 sdks:
   dart: ">=2.18.2 <3.0.0"
-  flutter: ">=1.17.0"
+  flutter: ">=1.24.0-7.0"

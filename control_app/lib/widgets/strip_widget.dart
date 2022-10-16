@@ -10,9 +10,9 @@ class Strip extends StatelessWidget {
     required this.inputWidget,
     required this.labelColor,
   }) : super(key: key);
-  final Color labelBackgroundcolor;
-  final Color inputBackgroundcolor;
-  final Color labelColor;
+  final Color? labelBackgroundcolor;
+  final Color? inputBackgroundcolor;
+  final Color? labelColor;
   final String label;
   final Widget inputWidget;
 
