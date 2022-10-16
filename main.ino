@@ -25,8 +25,10 @@ bool temperature_mode;
 double temp;
 double humidity;
 
-double reference_humidity;
-double reference_temperature;
+double reference_humidity = 50;
+double reference_temperature = 37.0;
+
+double FSR;
 
 void setup()
 {
@@ -58,15 +60,37 @@ void setup()
 void loop()
 {
     // Start of Program
+
+    // get the four readings for the temperature sensed
+    /*
+     *   Top Right thermistor readings
+     *   Top Left thermistor readings
+     *   Bottom Right thermistor readings
+     *   Bottom left thermistor readings
+     */
     thermoReadTR = getTemp(thermoTR);
     thermoReadTL = getTemp(thermoTL);
     thermoReadBR = getTemp(thermoBR);
     thermoReadBL = getTemp(thermoBL);
     thermoReadBM = getTemp(thermoBM);
 
+    /*
+    * Get Humidity rate
+    */
     dhtRead = getDHT();
     // Declaring the message's dilamiter
     String x = ",";
+
+    /*
+    * Send data stream as array of strings 
+    * ["FSR" , "," , "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", "," 
+    * , "thermoReadBM", "," , "Humidity", ",", "reference_temperature", ",", "reference_humidity"]
+    */
+    String Data = String(FSR) + x + String(thermoReadTR) + x + String(thermoReadTL) + x +
+                  String(thermoReadBR) + x + String(thermoReadBL) + x + String(thermoReadBM) + x +
+                  String(humidity) + x + String(reference_temperature) + x + String(reference_humidity);
+    Serial.print(Data);
+    delay(1000);
 
     String message = String(Serial.parseInt(), DEC);
 
@@ -101,72 +125,42 @@ void loop()
 
         double AVG_temp = (thermoReadTR + thermoReadTL + thermoReadBR + thermoReadBM) / 4;
 
-        // get the four readings for the temperature sensed
-        /*
-         *   Top Right thermistor readings
-         *   Top Left thermistor readings
-         *   Bottom Right thermistor readings
-         *   Bottom left thermistor readings
-         */
-        String thermoReadTR_notification = x + "TR_" + String(thermoReadTR);
-        Serial.print(thermoReadTR_notification);
-        delay(1000);
-
-        String thermoReadTL_notification = x + "TL_" + String(thermoReadTL);
-        Serial.print(thermoReadTL_notification);
-        delay(1000);
-
-        String thermoReadBR_notification = x + "BR_" + String(thermoReadBR);
-        Serial.print(thermoReadBR_notification);
-        delay(1000);
-
-        String thermoReadBL_notification = x + "BL_" + String(thermoReadBL);
-        Serial.print(thermoReadBL_notification);
-        delay(1000);
-
-        // getting humidity AND sending Humidity in Air Mode
-        humidity = dhtRead;
-        String humidity_notification = x + "HR_" + String(humidity);
-        Serial.print(humidity_notification);
-        delay(1000);
-
         if (AVG_temp < reference_temperature)
         {
             digitalWrite(blower, HIGH);
-        }else{
+        }
+        else
+        {
             digitalWrite(blower, LOW);
         }
 
         if (humidity < reference_humidity)
         {
             digitalWrite(heater, HIGH);
-        }else{
+        }
+        else
+        {
             digitalWrite(heater, LOW);
         }
     }
     else
     {
-        String thermoReadBM_notification = x + "BM_" + String(thermoReadBM);
-        Serial.print(thermoReadBM_notification);
-        delay(1000);
-
-        // getting humidity AND sending Humidity in Air Mode
-        humidity = dhtRead;
-        String humidity_notification = x + "HR_" + String(humidity);
-        Serial.print(humidity_notification);
-        delay(1000);
 
         if (thermoReadBM < reference_temperature)
         {
             digitalWrite(blower, HIGH);
-        }else{
+        }
+        else
+        {
             digitalWrite(blower, LOW);
         }
 
         if (humidity < reference_humidity)
         {
             digitalWrite(heater, HIGH);
-        }else{
+        }
+        else
+        {
             digitalWrite(heater, LOW);
         }
     }
