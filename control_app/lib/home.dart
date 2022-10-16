@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:awesome_dialog/awesome_dialog.dart';
 import 'package:control_app/models/readings.dart';
@@ -50,6 +51,18 @@ class _HomeState extends State<Home> {
 
       default:
         return 'Incubator is Off';
+    }
+  }
+
+  sendMessage(String text, connection) async {
+    text = text.trim();
+    if (text.length > 0) {
+      try {
+        connection.output.add(utf8.encode(text + "\r\n"));
+        await connection.output.allSent;
+      } catch (e) {
+        setState(() {});
+      }
     }
   }
 
@@ -227,10 +240,20 @@ class _HomeState extends State<Home> {
     return Colors.red;
   }
 
+  /// Start UI Variables ///
   bool modeSwitchValue = false;
   List<bool> selectedMode = [true, false];
   List<double> cornersTemp = [22.3, 22.3, 25.7, 21.5];
   bool isAdjusting = false;
+
+  /// End UI Variables ///
+
+  /// Start Dialog Variables ///
+  double tempRef = 37.0;
+  int humidtyRef = 50;
+  final formGlobalKey = GlobalKey<FormState>();
+
+  /// End Dialog Variables ///
   @override
   Widget build(BuildContext context) {
     if (kIsWeb) {
@@ -246,6 +269,7 @@ class _HomeState extends State<Home> {
       widths = MediaQuery.of(context).size.height;
       // heights = MediaQuery.of(context).size.width;
     }
+
     return Scaffold(
       appBar: AppBar(
         title: const Text("Infant Incubator"),
@@ -270,137 +294,185 @@ class _HomeState extends State<Home> {
               },
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: IconButton(
-              icon: Icon(Icons.settings),
-              onPressed: () {
-                AwesomeDialog(
-                  context: context,
-                  animType: AnimType.topSlide,
-                  headerAnimationLoop: false,
-                  dialogType: DialogType.question,
-                  showCloseIcon: true,
-                  btnOkOnPress: () {
-                    // Navigator.of(context).pop();
-                  },
-                  btnOkText: 'Save',
-                  btnOkColor: Colors.grey[900],
-                  onDismissCallback: (type) {
-                    debugPrint('Dialog Dissmiss from callback $type');
-                  },
-                  body: Column(
-                    children: [
-                      Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Text(
-                          'Enter suitable references',
-                          style: TextStyle(fontSize: 18),
+          Form(
+            key: formGlobalKey,
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: IconButton(
+                icon: Icon(Icons.settings),
+                onPressed: () {
+                  AwesomeDialog(
+                    context: context,
+                    animType: AnimType.topSlide,
+                    headerAnimationLoop: false,
+                    dialogType: DialogType.question,
+                    showCloseIcon: true,
+                    btnOkOnPress: () {
+                      debugPrint(formGlobalKey.currentState!
+                              .validate()
+                              .toString() +
+                          '${(tempRef * 10).toInt()}${(humidtyRef * 10).toInt()}');
+                      if (formGlobalKey.currentState!.validate()) {
+                        sendMessage(
+                            '${(tempRef * 10).toInt()}${(humidtyRef * 10).toInt()}',
+                            connection);
+                      }
+                    },
+                    buttonsBorderRadius: BorderRadius.circular(15),
+                    buttonsTextStyle: TextStyle(fontSize: 18),
+                    btnOkText: 'Save',
+                    btnOkColor: Colors.grey[900],
+                    onDismissCallback: (type) {
+                      debugPrint('Dialog Dissmiss from callback $type');
+                    },
+                    body: Column(
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(8.0),
+                          child: Text(
+                            'Enter suitable references',
+                            style: TextStyle(fontSize: 16),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 15, vertical: 8),
-                        child: TextFormField(
-                          onChanged: (val) {
-                            setState(() {});
-                          },
-                          validator: (value) {
-                            if (int.parse(value!) >= 50) {}
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(
-                              color: Colors.black,
-                              decorationColor: Colors.black),
-                          decoration: const InputDecoration(
-                              labelStyle: TextStyle(
-                                  color: Colors.black,
-                                  decorationColor: Colors.black),
-                              hintStyle: TextStyle(
-                                  color: Colors.black,
-                                  decorationColor: Colors.black),
-                              labelText: 'Temperature Reference',
-                              hintText: 'Temperature Reference',
-                              prefixIcon: Icon(Icons.thermostat_outlined,
-                                  color: Colors.red),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.grey, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.black, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.grey, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              )),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 8),
+                          child: TextFormField(
+                            initialValue: tempRef.toString(),
+                            onChanged: (val) {
+                              setState(() {
+                                if (val != '') {
+                                  tempRef = double.parse(
+                                      double.parse(val).toStringAsFixed(1));
+                                } else {
+                                  tempRef = 0.0;
+                                }
+                              });
+                              debugPrint(tempRef.toString());
+                            },
+                            validator: (value) {
+                              if (double.parse(double.parse(
+                                              value == '' ? '0' : value!)
+                                          .toStringAsFixed(1)) <
+                                      36.5 ||
+                                  double.parse(double.parse(
+                                              value == '' ? '0' : value!)
+                                          .toStringAsFixed(1)) >
+                                      37.2) {
+                                return "Temperature isn't valid - (Range 36.5℃ - 37.2℃)";
+                              } else {
+                                return null;
+                              }
+                            },
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                decorationColor: Colors.black),
+                            decoration: const InputDecoration(
+                                labelStyle: TextStyle(
+                                    color: Colors.black,
+                                    decorationColor: Colors.black),
+                                hintStyle: TextStyle(
+                                    color: Colors.black,
+                                    decorationColor: Colors.black),
+                                labelText: 'Temperature Reference',
+                                hintText: 'Temperature Reference',
+                                prefixIcon: Icon(Icons.thermostat_outlined,
+                                    color: Colors.red),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.grey, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.black, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.grey, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                )),
+                          ),
                         ),
-                      ),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 15, vertical: 8),
-                        child: TextFormField(
-                          onChanged: (val) {
-                            setState(() {});
-                          },
-                          validator: (value) {
-                            if (int.parse(value!) >= 50) {}
-                          },
-                          autovalidateMode: AutovalidateMode.onUserInteraction,
-                          keyboardType: TextInputType.number,
-                          style: const TextStyle(
-                              color: Colors.black,
-                              decorationColor: Colors.black),
-                          decoration: const InputDecoration(
-                              labelStyle: TextStyle(
-                                  color: Colors.black,
-                                  decorationColor: Colors.black),
-                              hintStyle: TextStyle(
-                                  color: Colors.black,
-                                  decorationColor: Colors.black),
-                              labelText: 'Humidty Reference',
-                              hintText: 'Humidty Reference',
-                              prefixIcon: Icon(Icons.thermostat_outlined,
-                                  color: Colors.red),
-                              focusedBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.grey, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.black, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              ),
-                              border: OutlineInputBorder(
-                                borderSide:
-                                    BorderSide(color: Colors.grey, width: 1.0),
-                                borderRadius:
-                                    BorderRadius.all(Radius.circular(25.0)),
-                              )),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 15, vertical: 8),
+                          child: TextFormField(
+                            initialValue: humidtyRef.toString(),
+                            onChanged: (val) {
+                              setState(() {
+                                if (val != '') {
+                                  humidtyRef = int.parse(val);
+                                } else {
+                                  humidtyRef = 0;
+                                }
+                              });
+                              debugPrint(humidtyRef.toString());
+                            },
+                            validator: (value) {
+                              if (int.parse(value == '' ? '0' : value!) > 90 ||
+                                  int.parse(value == '' ? '0' : value!) < 40) {
+                                return "Humidty isn't valid - (Range 40% - 90%)";
+                              } else {
+                                return null;
+                              }
+                            },
+                            autovalidateMode:
+                                AutovalidateMode.onUserInteraction,
+                            keyboardType: TextInputType.number,
+                            style: const TextStyle(
+                                color: Colors.black,
+                                decorationColor: Colors.black),
+                            decoration: const InputDecoration(
+                                labelStyle: TextStyle(
+                                    color: Colors.black,
+                                    decorationColor: Colors.black),
+                                hintStyle: TextStyle(
+                                    color: Colors.black,
+                                    decorationColor: Colors.black),
+                                labelText: 'Humidty Reference',
+                                hintText: 'Humidty Reference',
+                                prefixIcon:
+                                    Icon(Icons.water_drop, color: Colors.blue),
+                                focusedBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.grey, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.black, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                ),
+                                border: OutlineInputBorder(
+                                  borderSide: BorderSide(
+                                      color: Colors.grey, width: 1.0),
+                                  borderRadius:
+                                      BorderRadius.all(Radius.circular(25.0)),
+                                )),
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ).show();
-              },
+                      ],
+                    ),
+                  ).show();
+                },
+              ),
             ),
           ),
         ],
       ),
       body: Container(
         color: Colors.grey[200],
-        child: Column(
+        child: ListView(
           children: [
             Container(
               child: Center(
@@ -514,7 +586,17 @@ class _HomeState extends State<Home> {
                     ),
                   ),
                   selectedMode[0]
-                      ? SizedBox()
+                      ? Container(
+                          height: widths * 0.6,
+                          child: Center(
+                            child: Image(
+                              width: widths * 0.4,
+                              image: AssetImage(
+                                'assets/baby.png',
+                              ),
+                            ),
+                          ),
+                        )
                       : Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 30),
                           child: DottedBorder(
@@ -523,91 +605,118 @@ class _HomeState extends State<Home> {
                               dashPattern: [10, 10],
                               borderType: BorderType.RRect,
                               radius: Radius.circular(20),
-                              child: Column(
+                              child: Stack(
                                 children: [
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          height: widths * 0.3,
-                                          decoration: BoxDecoration(
-                                            color: getCornerColor(0),
-                                            borderRadius: BorderRadius.only(
-                                              topLeft: Radius.circular(20),
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              cornersTemp[0].toString() + '℃',
-                                              style: TextStyle(
-                                                fontSize: 25,
-                                              ),
-                                            ),
+                                  Positioned(
+                                    child: Container(
+                                      height: widths * 0.6,
+                                      child: Center(
+                                        child: Image(
+                                          width: widths * 0.4,
+                                          image: AssetImage(
+                                            'assets/baby.png',
                                           ),
                                         ),
                                       ),
-                                      Expanded(
-                                        child: Container(
-                                          height: widths * 0.3,
-                                          decoration: BoxDecoration(
-                                            color: getCornerColor(1),
-                                            borderRadius: BorderRadius.only(
-                                              topRight: Radius.circular(20),
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              cornersTemp[1].toString() + '℃',
-                                              style: TextStyle(
-                                                fontSize: 25,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                    ),
                                   ),
-                                  Row(
-                                    mainAxisSize: MainAxisSize.min,
+                                  Column(
                                     children: [
-                                      Expanded(
-                                        child: Container(
-                                          height: widths * 0.3,
-                                          decoration: BoxDecoration(
-                                            color: getCornerColor(2),
-                                            borderRadius: BorderRadius.only(
-                                              bottomLeft: Radius.circular(20),
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              cornersTemp[2].toString() + '℃',
-                                              style: TextStyle(
-                                                fontSize: 25,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              height: widths * 0.3,
+                                              decoration: BoxDecoration(
+                                                color: getCornerColor(0)!
+                                                    .withOpacity(0.85),
+                                                borderRadius: BorderRadius.only(
+                                                  topLeft: Radius.circular(20),
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  cornersTemp[0].toString() +
+                                                      '℃',
+                                                  style: TextStyle(
+                                                    fontSize: 25,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          Expanded(
+                                            child: Container(
+                                              height: widths * 0.3,
+                                              decoration: BoxDecoration(
+                                                color: getCornerColor(1)!
+                                                    .withOpacity(0.85),
+                                                borderRadius: BorderRadius.only(
+                                                  topRight: Radius.circular(20),
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  cornersTemp[1].toString() +
+                                                      '℃',
+                                                  style: TextStyle(
+                                                    fontSize: 25,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
-                                      Expanded(
-                                        child: Container(
-                                          height: widths * 0.3,
-                                          decoration: BoxDecoration(
-                                            color: getCornerColor(3),
-                                            borderRadius: BorderRadius.only(
-                                              bottomRight: Radius.circular(20),
-                                            ),
-                                          ),
-                                          child: Center(
-                                            child: Text(
-                                              cornersTemp[3].toString() + '℃',
-                                              style: TextStyle(
-                                                fontSize: 25,
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Expanded(
+                                            child: Container(
+                                              height: widths * 0.3,
+                                              decoration: BoxDecoration(
+                                                color: getCornerColor(2)!
+                                                    .withOpacity(0.85),
+                                                borderRadius: BorderRadius.only(
+                                                  bottomLeft:
+                                                      Radius.circular(20),
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  cornersTemp[2].toString() +
+                                                      '℃',
+                                                  style: TextStyle(
+                                                    fontSize: 25,
+                                                  ),
+                                                ),
                                               ),
                                             ),
                                           ),
-                                        ),
+                                          Expanded(
+                                            child: Container(
+                                              height: widths * 0.3,
+                                              decoration: BoxDecoration(
+                                                color: getCornerColor(3)!
+                                                    .withOpacity(0.85),
+                                                borderRadius: BorderRadius.only(
+                                                  bottomRight:
+                                                      Radius.circular(20),
+                                                ),
+                                              ),
+                                              child: Center(
+                                                child: Text(
+                                                  cornersTemp[3].toString() +
+                                                      '℃',
+                                                  style: TextStyle(
+                                                    fontSize: 25,
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
