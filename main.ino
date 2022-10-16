@@ -75,17 +75,17 @@ void loop()
     thermoReadBM = getTemp(thermoBM);
 
     /*
-    * Get Humidity rate
-    */
+     * Get Humidity rate
+     */
     dhtRead = getDHT();
     // Declaring the message's dilamiter
     String x = ",";
 
     /*
-    * Send data stream as array of strings 
-    * ["FSR" , "," , "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", "," 
-    * , "thermoReadBM", "," , "Humidity", ",", "reference_temperature", ",", "reference_humidity"]
-    */
+     * Send data stream as array of strings
+     * ["FSR" , "," , "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", ","
+     * , "thermoReadBM", "," , "Humidity", ",", "reference_temperature", ",", "reference_humidity"]
+     */
     String Data = String(FSR) + x + String(thermoReadTR) + x + String(thermoReadTL) + x +
                   String(thermoReadBR) + x + String(thermoReadBL) + x + String(thermoReadBM) + x +
                   String(humidity) + x + String(reference_temperature) + x + String(reference_humidity);
@@ -94,35 +94,32 @@ void loop()
 
     String message = String(Serial.parseInt(), DEC);
 
-    /*
-    '4' --> character for checking the message recieved and unique for
-    humidity minimum value
-    */
-    if (message[0] == '4')
-    {
-        // Humidity Notification
-        String m = String(message[1]) + String(message[2]);
-        reference_humidity = m.toDouble();
-    }
+    // Temperature Notification
+    String message_temp = String(message[0]) + String(message[1]) + '.' + String(message[2]);
+    reference_temperature = message_temp.toDouble();
+
+    // Humidity Notification
+    String message_humidity = String(message[3]) + String(message[4]) + '.' + string(message[5]);
+    reference_humidity = message_humidity.toDouble();
 
     /*
-     '5' --> character for checking the message recieved and it is unique for
-     timperature maximum value
-     */
-    if (message[0] == '5')
-    {
-        // Temperature Notification
-        String m = String(message[1]) + String(message[2]) + "." + String(message[3]);
-        reference_temperature = m.toDouble();
-    }
-
-    /*
-     *   0 ---> Air Mode
-     *   1 ---> Baby Mode
+     *   1 ---> Air Mode
+     *   0 ---> Baby Mode
      */
     if (temperature_mode)
     {
-
+        /*
+         * Air Mode activated
+         *     --> Get Average temperature of the four thermistors
+         *           ~ Condition (Average temperature < refrence temperature sent)
+         *               # Turn on Blower to heat
+         *           ~ Otherwise
+         *               # Close turn off the blower
+         *           ~ Condition (Humidity < reference humidity sent)
+         *               # Turn on the heater to get water vabour to increase the humidity
+         *           ~  Otherwise
+         *                # Turn off the heater
+         */
         double AVG_temp = (thermoReadTR + thermoReadTL + thermoReadBR + thermoReadBM) / 4;
 
         if (AVG_temp < reference_temperature)
@@ -145,6 +142,17 @@ void loop()
     }
     else
     {
+        /*
+         * Baby Mode activated
+         *           ~ Condition (Baby temperature < refrence temperature sent)
+         *               # Turn on Blower to heat
+         *           ~ Otherwise
+         *               # Close turn off the blower
+         *           ~ Condition (Humidity < reference humidity sent)
+         *               # Turn on the heater to get water vabour to increase the humidity
+         *           ~  Otherwise
+         *                # Turn off the heater
+         */
 
         if (thermoReadBM < reference_temperature)
         {
@@ -164,7 +172,6 @@ void loop()
             digitalWrite(heater, LOW);
         }
     }
-    // Fastest should be once every two seconds.
 
 } // end loop(
 
