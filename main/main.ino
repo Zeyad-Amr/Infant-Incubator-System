@@ -86,10 +86,10 @@ void loop()
     /*
      * Send data stream as array of strings
      * ["#", "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", ","
-     * , "thermoReadBM", ",", "Humidity"]
+     * , "thermoReadBM", ",", "Humidity", "#"]
      */
     String Data = start_end + String(thermoReadTR) + x + String(thermoReadTL) + x + String(thermoReadBR) + x +
-                  String(thermoReadBL) + x + String(thermoReadBM) + x + String(humidity);
+                  String(thermoReadBL) + x + String(thermoReadBM) + x + String(humidity) + start_end;
     Serial.print(Data);
     delay(1000);
 
