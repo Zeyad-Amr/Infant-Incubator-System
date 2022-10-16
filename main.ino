@@ -143,14 +143,14 @@ void loop()
             digitalWrite(blower, LOW);
         }
 
-        if (humidity < reference_humidity)
-        {
-            digitalWrite(heater, HIGH);
-        }
-        else
-        {
-            digitalWrite(heater, LOW);
-        }
+        // if (humidity < reference_humidity)
+        // {
+        //     digitalWrite(heater, HIGH);
+        // }
+        // else
+        // {
+        //     digitalWrite(heater, LOW);
+        // }
     }
     else if (temperature_mode == 2)
     {
@@ -175,14 +175,14 @@ void loop()
             digitalWrite(blower, LOW);
         }
 
-        if (humidity < reference_humidity)
-        {
-            digitalWrite(heater, HIGH);
-        }
-        else
-        {
-            digitalWrite(heater, LOW);
-        }
+        // if (humidity < reference_humidity)
+        // {
+        //     digitalWrite(heater, HIGH);
+        // }
+        // else
+        // {
+        //     digitalWrite(heater, LOW);
+        // }
     }
 
 } // end loop(
