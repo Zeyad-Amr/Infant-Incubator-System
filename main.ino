@@ -28,8 +28,6 @@ double humidity;
 double reference_humidity = 50;
 double reference_temperature = 37.0;
 
-double FSR;
-
 void setup()
 {
     /*
@@ -110,7 +108,7 @@ void loop()
     reference_temperature = message_temp.toDouble();
 
     // Humidity Notification
-    String message_humidity = String(message[4]) + String(message[5]) + '.' + string(message[6]);
+    String message_humidity = String(message[4]) + String(message[5]) + '.' + String(message[6]);
     reference_humidity = message_humidity.toDouble();
     }
 
