@@ -25,9 +25,30 @@ bool temperature_mode;
 double temp;
 double humidity;
 
+double reference_humidity;
+double reference_temperature;
+
 void setup()
 {
+    /*
+     * Heater relay PinMode direction as Output
+     * intialized as Low signal.
+     */
+    pinMode(heater, OUTPUT);
+    digitalWrite(heater, LOW);
 
+    /*
+     * Blower relay PinMode direction as Output
+     * intialized as Low signal.
+     */
+    pinMode(blower, OUTPUT);
+    digitalWrite(blower, LOW);
+
+    /*
+     * Baud Rate Serial as 9600
+     * Delay for 500 ms to untill checking stablity state
+     * Delay for 1000 ms before accessing Sensor
+     */
     Serial.begin(9600);
     delay(500);  // Delay to let system boot
     delay(1000); // Wait before accessing Sensor
@@ -47,12 +68,34 @@ void loop()
     // Declaring the message's dilamiter
     String x = ",";
 
+    String message = String(Serial.parseInt(), DEC);
+
+    /*
+    '4' --> character for checking the message recieved and unique for
+    humidity minimum value
+    */
+    if (message[0] == '4')
+    {
+        // Humidity Notification
+        String m = String(message[1]) + String(message[2]);
+        reference_humidity = m.toDouble();
+    }
+
+    /*
+     '5' --> character for checking the message recieved and it is unique for
+     timperature maximum value
+     */
+    if (messeage[0] == '5')
+    {
+        // Temperature Notification
+        String m = String(messeage[1]) + String(messeage[2]);
+        reference_temperature = m.toDouble();
+    }
+
     /*
      *   0 ---> Air Mode
      *   1 ---> Baby Mode
      */
-    String customed_reference_temperature = String(Serial.parseInt(), DEC);
-
     if (temperature_mode)
     {
 
@@ -86,6 +129,20 @@ void loop()
         String humidity_notification = x + "HR_" + String(humidity);
         Serial.print(humidity_notification);
         delay(1000);
+
+        if (AVG_temp < reference_temperature)
+        {
+            digitalWrite(blower, HIGH);
+        }else{
+            digitalWrite(blower, LOW);
+        }
+
+        if (humidity < reference_humidity)
+        {
+            digitalWrite(heater, HIGH);
+        }else{
+            digitalWrite(heater, LOW);
+        }
     }
     else
     {
@@ -98,6 +155,20 @@ void loop()
         String humidity_notification = x + "HR_" + String(humidity);
         Serial.print(humidity_notification);
         delay(1000);
+
+        if (thermoReadBM < reference_temperature)
+        {
+            digitalWrite(blower, HIGH);
+        }else{
+            digitalWrite(blower, LOW);
+        }
+
+        if (humidity < reference_humidity)
+        {
+            digitalWrite(heater, HIGH);
+        }else{
+            digitalWrite(heater, LOW);
+        }
     }
     // Fastest should be once every two seconds.
 
@@ -119,9 +190,6 @@ double getTemp(double thermistor_output)
     thermistor_resistance = ((5 * (10.0 / output_voltage)) - 10); /* Resistance in kilo ohms */
     thermistor_resistance = thermistor_resistance * 1000;         /* Resistance in ohms   */
     therm_res_ln = log(thermistor_resistance);
-    /*  Steinhart-Hart Thermistor Equation: */
-    /*  Temperature in Kelvin = 1 / (A + B[ln(R)] + C[ln(R)]^3)   */
-    /*  where A = 0.001129148, B = 0.000234125 and C = 8.76741*10^-8  */
     temperature = (1 / (0.001129148 + (0.000234125 * therm_res_ln) + (0.0000000876741 * therm_res_ln * therm_res_ln * therm_res_ln))); /* Temperature in Kelvin */
     temperature = temperature - 273.15;                                                                                                /* Temperature in degree Celsius */
 
