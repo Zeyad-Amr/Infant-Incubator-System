@@ -20,7 +20,7 @@ double thermoReadBL;
 double thermoReadBM;
 double dhtRead;
 
-bool temperature_mode;
+int temperature_mode = 0;
 
 double temp;
 double humidity;
@@ -78,35 +78,47 @@ void loop()
      * Get Humidity rate
      */
     dhtRead = getDHT();
+
     // Declaring the message's dilamiter
     String x = ",";
+    String start_end = "#";
 
     /*
      * Send data stream as array of strings
-     * ["FSR" , "," , "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", ","
-     * , "thermoReadBM", "," , "Humidity", ",", "reference_temperature", ",", "reference_humidity"]
+     * ["#", "thermoReadTR", "," , "thermoReadTL", "," , "thermoReadBR", "," , "thermoReadBL", ","
+     * , "thermoReadBM", ",", "Humidity", "#"]
      */
-    String Data = String(FSR) + x + String(thermoReadTR) + x + String(thermoReadTL) + x +
-                  String(thermoReadBR) + x + String(thermoReadBL) + x + String(thermoReadBM) + x +
-                  String(humidity) + x + String(reference_temperature) + x + String(reference_humidity);
+    String Data = start_end + String(thermoReadTR) + x + String(thermoReadTL) + x + String(thermoReadBR) + x +
+                  String(thermoReadBL) + x + String(thermoReadBM) + x + String(humidity) + start_end;
     Serial.print(Data);
     delay(1000);
 
     String message = String(Serial.parseInt(), DEC);
+    /*
+     *  Recieve tempMode 
+     */
+    String message_tempMode = String(message[0]);
+    temperature_mode = message_tempMode.toDouble();
 
+    /*
+     *  Check if temp_mode not equal zero --> take the whole data stream   
+     */
+    if (temperature_mode != 0)
+    {
     // Temperature Notification
-    String message_temp = String(message[0]) + String(message[1]) + '.' + String(message[2]);
+    String message_temp = String(message[1]) + String(message[2]) + '.' + String(message[3]);
     reference_temperature = message_temp.toDouble();
 
     // Humidity Notification
-    String message_humidity = String(message[3]) + String(message[4]) + '.' + string(message[5]);
+    String message_humidity = String(message[4]) + String(message[5]) + '.' + string(message[6]);
     reference_humidity = message_humidity.toDouble();
+    }
 
     /*
      *   1 ---> Air Mode
      *   0 ---> Baby Mode
      */
-    if (temperature_mode)
+    if (temperature_mode == 1)
     {
         /*
          * Air Mode activated
@@ -140,7 +152,7 @@ void loop()
             digitalWrite(heater, LOW);
         }
     }
-    else
+    else if (temperature_mode == 2)
     {
         /*
          * Baby Mode activated
