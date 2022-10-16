@@ -85,10 +85,10 @@ void loop()
      '5' --> character for checking the message recieved and it is unique for
      timperature maximum value
      */
-    if (messeage[0] == '5')
+    if (message[0] == '5')
     {
         // Temperature Notification
-        String m = String(messeage[1]) + String(messeage[2]);
+        String m = String(message[1]) + String(message[2]) + "." + String(message[3]);
         reference_temperature = m.toDouble();
     }
 
