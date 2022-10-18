@@ -16,41 +16,66 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
-  Readings? readings =
-      Readings(containerLvl: 0, drainLvl: 0, temp: 0, status: 0);
+  Readings? readings = Readings();
+  double humRefe = 50;
+  double tempRefe = 37;
+  bool isOn = false;
   BluetoothConnection? connection;
   String prevString = '';
-
   String _messageBuffer = '';
-
   bool isConnecting = true;
   bool get isConnected => connection != null && connection!.isConnected;
-
   bool isDisconnecting = false;
-  // String level = '0.0';
-
   List<String> dataList = [];
-  // List<String> getData = [];
-
-  String msg(int status) {
-    switch (status) {
-      case 0:
-        return 'Incubator is on';
-      case 1:
-        return 'Adusting Humidty ...';
-      case 2:
-        return 'Adusting Temperature ...';
-      case 3:
-        return 'Incubator is ready ...';
-      case 4:
-        return 'Incubator needs for adjusting!';
-      case 5:
-        return 'Warning, Temperature is High!';
-      case 6:
-        return 'Warning, Humidty is High!';
-
-      default:
-        return 'Incubator is Off';
+  Color msgColor = Colors.blue;
+  String msg() {
+    if (!isAdjusting && !isOn) {
+      setState(() {
+        msgColor = Colors.grey;
+      });
+      return 'Incubator is Off';
+    } else if (readings!.mode == 2 && isOn && isAdjusting) {
+      setState(() {
+        msgColor = Colors.blue;
+      });
+      return 'Adusting Temperature in baby mode ...';
+    } else if (readings!.mode == 3 && isOn && isAdjusting) {
+      setState(() {
+        msgColor = Colors.blue;
+      });
+      return 'Adusting Temperature in air mode ...';
+    } else {
+      if (selectedMode[0]) {
+        /// baby mode
+        if (readings!.tempBaby! < tempRefe!) {
+          setState(() {
+            msgColor = Colors.orange;
+          });
+          return 'Incubator needs for adjusting!';
+        } else {
+          setState(() {
+            msgColor = Colors.green;
+          });
+          return 'Incubator is ready Now';
+        }
+      } else {
+        if (((readings!.tempTR! +
+                    readings!.tempTL! +
+                    readings!.tempBL! +
+                    readings!.tempBR!) /
+                4) <
+            tempRefe!) {
+          setState(() {
+            msgColor = Colors.orange;
+          });
+          return 'Incubator needs for adjusting!';
+        } else {
+          setState(() {
+            msgColor = Colors.green;
+          });
+          return 'Incubator is ready Now';
+        }
+      }
     }
   }
 
@@ -104,33 +129,39 @@ class _HomeState extends State<Home> {
         String dataString = String.fromCharCodes(buffer);
         dataList.add(dataString);
 
-        // debugPrint('data ${dataList.join().split("@").last}');
+        // dataList.isNotEmpty
+        //     ? debugPrint('data ${dataList.join().split("#").last}')
+        //     : debugPrint('');
+        debugPrint(dataList.toString());
         try {
-          String x = dataList.join().split("@").last;
-          List<String> data = x.split('*');
-          if (data.length == 4) {
+          String x = dataList.join().split("#").last;
+          List<String> data = x.split(',');
+          // debugPrint('data Length ${data.length}');
+          if (data.length == 6) {
             setState(() {
               readings = Readings(
-                containerLvl: int.parse(data[0]),
-                drainLvl: int.parse(data[1]) <= 50 ? 0 : int.parse(data[1]),
-                temp: int.parse(data[2]),
-                status: int.parse(data[3]),
+                tempTR: double.parse(data[0]),
+                tempTL: double.parse(data[1]),
+                tempBR: double.parse(data[2]),
+                tempBL: double.parse(data[3]),
+                tempBaby: double.parse(data[4]),
+                humidity: double.parse(data[5]),
               );
               debugPrint(readings.toString());
             });
           } else {
-            debugPrint("Waiting ....");
-            debugPrint(x.toString());
+            // debugPrint("Waiting ....");
+            // debugPrint(x.toString());
           }
         } catch (e) {
-          // level = '00.0';
+          debugPrint('error ${e}');
         }
 
-        if (isDisconnecting) {
-          debugPrint('Disconnecting locally!');
-        } else {
-          debugPrint('Disconnected remotely!');
-        }
+        // if (isDisconnecting) {
+        //   debugPrint('Disconnecting locally!');
+        // } else {
+        //   debugPrint('Disconnected remotely!');
+        // }
         if (mounted) {
           setState(() {});
         }
@@ -138,7 +169,7 @@ class _HomeState extends State<Home> {
       setState(() {});
     }).catchError((error) {
       debugPrint('Cannot connect, exception occured');
-      debugPrint(error);
+      // debugPrint(error);
     });
   }
 
@@ -201,21 +232,26 @@ class _HomeState extends State<Home> {
     super.dispose();
   }
 
-  Color? getCornerColor(int index) {
+  Color? getCornerColor(double tempVal) {
     List<double> temps = [];
-    temps.addAll(cornersTemp);
+    temps.addAll([
+      readings!.tempTR!,
+      readings!.tempTL!,
+      readings!.tempBR!,
+      readings!.tempBL!
+    ]);
     temps.sort();
-    if (cornersTemp[index] == temps[0]) {
+    if (tempVal == temps[0]) {
       return Colors.red[100];
     }
-    if (cornersTemp[index] == temps[1]) {
+    if (tempVal == temps[1]) {
       if (temps[0] == temps[1]) {
         return Colors.red[100];
       } else {
         return Colors.red[200];
       }
     }
-    if (cornersTemp[index] == temps[2]) {
+    if (tempVal == temps[2]) {
       if (temps[0] == temps[2] && temps[1] == temps[2]) {
         return Colors.red[100];
       } else if (temps[1] == temps[2]) {
@@ -224,7 +260,7 @@ class _HomeState extends State<Home> {
         return Colors.red[300];
       }
     }
-    if (cornersTemp[index] == temps[3]) {
+    if (tempVal == temps[3]) {
       if (temps[0] == temps[3] &&
           temps[1] == temps[3] &&
           temps[2] == temps[3]) {
@@ -241,16 +277,14 @@ class _HomeState extends State<Home> {
   }
 
   /// Start UI Variables ///
-  bool modeSwitchValue = false;
-  List<bool> selectedMode = [true, false];
-  List<double> cornersTemp = [22.3, 22.3, 25.7, 21.5];
+  // bool modeSwitchValue = false;
+  List<bool> selectedMode = [false, true];
   bool isAdjusting = false;
 
   /// End UI Variables ///
 
   /// Start Dialog Variables ///
-  double tempRef = 37.0;
-  int humidtyRef = 50;
+
   final formGlobalKey = GlobalKey<FormState>();
 
   /// End Dialog Variables ///
@@ -289,8 +323,17 @@ class _HomeState extends State<Home> {
                   : Icon(Icons.adjust, color: Colors.green),
               onPressed: () {
                 setState(() {
+                  isOn = true;
                   isAdjusting = !isAdjusting;
+                  if (!isAdjusting) {
+                    readings!.mode = 1;
+                  } else {
+                    readings!.mode = selectedMode[0] ? 2 : 3;
+                  }
                 });
+                sendMessage(
+                    '${readings!.mode}${(tempRefe! * 10).toInt()}${(humRefe! * 10).toInt()}',
+                    connection);
               },
             ),
           ),
@@ -308,14 +351,10 @@ class _HomeState extends State<Home> {
                     dialogType: DialogType.question,
                     showCloseIcon: true,
                     btnOkOnPress: () {
-                      debugPrint(formGlobalKey.currentState!
-                              .validate()
-                              .toString() +
-                          '${(tempRef * 10).toInt()}${(humidtyRef * 10).toInt()}');
                       if (formGlobalKey.currentState!.validate()) {
-                        sendMessage(
-                            '${(tempRef * 10).toInt()}${(humidtyRef * 10).toInt()}',
-                            connection);
+                        // sendMessage(
+                        //     '${readings!.mode!}${(tempRefe! * 10).toInt()}${(humRefe! * 10).toInt()}',
+                        //     connection);
                       }
                     },
                     buttonsBorderRadius: BorderRadius.circular(15),
@@ -338,28 +377,28 @@ class _HomeState extends State<Home> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 15, vertical: 8),
                           child: TextFormField(
-                            initialValue: tempRef.toString(),
+                            initialValue: tempRefe.toString(),
                             onChanged: (val) {
                               setState(() {
                                 if (val != '') {
-                                  tempRef = double.parse(
+                                  tempRefe = double.parse(
                                       double.parse(val).toStringAsFixed(1));
                                 } else {
-                                  tempRef = 0.0;
+                                  tempRefe = 0.0;
                                 }
                               });
-                              debugPrint(tempRef.toString());
+                              debugPrint(tempRefe.toString());
                             },
                             validator: (value) {
                               if (double.parse(double.parse(
                                               value == '' ? '0' : value!)
                                           .toStringAsFixed(1)) <
-                                      36.5 ||
+                                      34 ||
                                   double.parse(double.parse(
                                               value == '' ? '0' : value!)
                                           .toStringAsFixed(1)) >
-                                      37.2) {
-                                return "Temperature isn't valid - (Range 36.5℃ - 37.2℃)";
+                                      38) {
+                                return "Temperature isn't valid - (Range 34℃ - 38℃)";
                               } else {
                                 return null;
                               }
@@ -405,21 +444,23 @@ class _HomeState extends State<Home> {
                           padding: const EdgeInsets.symmetric(
                               horizontal: 15, vertical: 8),
                           child: TextFormField(
-                            initialValue: humidtyRef.toString(),
+                            initialValue: humRefe.toString(),
                             onChanged: (val) {
                               setState(() {
                                 if (val != '') {
-                                  humidtyRef = int.parse(val);
+                                  humRefe = double.parse(val);
                                 } else {
-                                  humidtyRef = 0;
+                                  humRefe = 0;
                                 }
                               });
-                              debugPrint(humidtyRef.toString());
+                              debugPrint(humRefe.toString());
                             },
                             validator: (value) {
-                              if (int.parse(value == '' ? '0' : value!) > 90 ||
-                                  int.parse(value == '' ? '0' : value!) < 40) {
-                                return "Humidty isn't valid - (Range 40% - 90%)";
+                              if (double.parse(value == '' ? '0' : value!) >
+                                      80 ||
+                                  double.parse(value == '' ? '0' : value!) <
+                                      40) {
+                                return "Humidty isn't valid - (Range 40% - 80%)";
                               } else {
                                 return null;
                               }
@@ -476,9 +517,9 @@ class _HomeState extends State<Home> {
           children: [
             Container(
               child: Center(
-                  child: Text(isAdjusting ? msg(1) : msg(4),
-                      style: const TextStyle(color: Colors.white))),
-              color: isAdjusting ? Colors.blue[700] : Colors.orange,
+                  child:
+                      Text(msg(), style: const TextStyle(color: Colors.white))),
+              color: msgColor,
               width: double.infinity,
               height: 25,
             ),
@@ -536,6 +577,11 @@ class _HomeState extends State<Home> {
                         setState(() {
                           selectedMode[0] = index == 0;
                           selectedMode[1] = index == 1;
+                          readings!.mode = index == 1
+                              ? 3
+                              : index == 0
+                                  ? 2
+                                  : 1;
                         });
                       }
                     },
@@ -557,7 +603,7 @@ class _HomeState extends State<Home> {
                       labelColor: Colors.black,
                       labelBackgroundcolor: Colors.white,
                       inputWidget: Text(
-                        "50%",
+                        readings!.humidity.toString(),
                         style: TextStyle(fontSize: 25, color: Colors.white),
                       ),
                     ),
@@ -574,12 +620,14 @@ class _HomeState extends State<Home> {
                       labelColor: Colors.black,
                       labelBackgroundcolor: Colors.white,
                       inputWidget: Text(
-                        ((cornersTemp[0] +
-                                        cornersTemp[1] +
-                                        cornersTemp[2] +
-                                        cornersTemp[3]) /
-                                    4)
-                                .toStringAsFixed(1) +
+                        (readings!.mode == 3
+                                ? ((readings!.tempTR! +
+                                            readings!.tempTL! +
+                                            readings!.tempBR! +
+                                            readings!.tempBL!) /
+                                        4)
+                                    .toStringAsFixed(1)
+                                : readings!.tempBaby.toString()) +
                             "℃",
                         style: TextStyle(fontSize: 18, color: Colors.white),
                       ),
@@ -629,7 +677,8 @@ class _HomeState extends State<Home> {
                                             child: Container(
                                               height: widths * 0.3,
                                               decoration: BoxDecoration(
-                                                color: getCornerColor(0)!
+                                                color: getCornerColor(
+                                                        readings!.tempTL!)!
                                                     .withOpacity(0.85),
                                                 borderRadius: BorderRadius.only(
                                                   topLeft: Radius.circular(20),
@@ -637,7 +686,7 @@ class _HomeState extends State<Home> {
                                               ),
                                               child: Center(
                                                 child: Text(
-                                                  cornersTemp[0].toString() +
+                                                  readings!.tempTL.toString() +
                                                       '℃',
                                                   style: TextStyle(
                                                     fontSize: 25,
@@ -650,7 +699,8 @@ class _HomeState extends State<Home> {
                                             child: Container(
                                               height: widths * 0.3,
                                               decoration: BoxDecoration(
-                                                color: getCornerColor(1)!
+                                                color: getCornerColor(
+                                                        readings!.tempTR!)!
                                                     .withOpacity(0.85),
                                                 borderRadius: BorderRadius.only(
                                                   topRight: Radius.circular(20),
@@ -658,7 +708,7 @@ class _HomeState extends State<Home> {
                                               ),
                                               child: Center(
                                                 child: Text(
-                                                  cornersTemp[1].toString() +
+                                                  readings!.tempTR.toString() +
                                                       '℃',
                                                   style: TextStyle(
                                                     fontSize: 25,
@@ -676,7 +726,8 @@ class _HomeState extends State<Home> {
                                             child: Container(
                                               height: widths * 0.3,
                                               decoration: BoxDecoration(
-                                                color: getCornerColor(2)!
+                                                color: getCornerColor(
+                                                        readings!.tempBL!)!
                                                     .withOpacity(0.85),
                                                 borderRadius: BorderRadius.only(
                                                   bottomLeft:
@@ -685,7 +736,7 @@ class _HomeState extends State<Home> {
                                               ),
                                               child: Center(
                                                 child: Text(
-                                                  cornersTemp[2].toString() +
+                                                  readings!.tempBL.toString() +
                                                       '℃',
                                                   style: TextStyle(
                                                     fontSize: 25,
@@ -698,7 +749,8 @@ class _HomeState extends State<Home> {
                                             child: Container(
                                               height: widths * 0.3,
                                               decoration: BoxDecoration(
-                                                color: getCornerColor(3)!
+                                                color: getCornerColor(
+                                                        readings!.tempBR!)!
                                                     .withOpacity(0.85),
                                                 borderRadius: BorderRadius.only(
                                                   bottomRight:
@@ -707,7 +759,7 @@ class _HomeState extends State<Home> {
                                               ),
                                               child: Center(
                                                 child: Text(
-                                                  cornersTemp[3].toString() +
+                                                  readings!.tempBR.toString() +
                                                       '℃',
                                                   style: TextStyle(
                                                     fontSize: 25,
@@ -722,7 +774,7 @@ class _HomeState extends State<Home> {
                                   ),
                                 ],
                               )),
-                        )
+                        ),
                 ],
               ),
             ),

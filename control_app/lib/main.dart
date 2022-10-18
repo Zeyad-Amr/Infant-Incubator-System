@@ -1,3 +1,4 @@
+import 'package:control_app/services/service.dart';
 import 'package:control_app/splash_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -27,7 +28,7 @@ class MyApp extends StatelessWidget {
               debugPrint(snapshot.error.toString());
             }
             if (snapshot.connectionState == ConnectionState.done) {
-              return const SplashScreen();
+              return const Services();
             }
             return const Center(
               child: CircularProgressIndicator(),
